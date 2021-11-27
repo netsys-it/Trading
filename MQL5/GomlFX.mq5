@@ -1,13 +1,15 @@
 //+------------------------------------------------------------------+
-//|                                                       YoloFX.mq5 |
+//|                                                       GomlFX.mq5 |
 //|                                                   Daniel Plaskur |
 //|                                               https://plaskur.sk |
 //+------------------------------------------------------------------+
 #property copyright "Daniel Plaskur"
 #property link      "https://plaskur.sk"
 #property version   "1.00"
+#property script_show_inputs
 #include <jason.mqh>
-long ids[10];
+input double risk_percentage = 1;
+input int sl_pips = 400;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -65,29 +67,41 @@ void check_signals(){
                	double tp_1=jv["signals"][i]["tp_1"].ToDbl();
                	double sl=jv["signals"][i]["sl"].ToDbl();
                	
-               	//--- Send order
+               	double symbol_point = SymbolInfoDouble(symbol,SYMBOL_POINT);
+
                	MqlTradeRequest order_request={};
                	
-               	if(operation == "BUY"){
-               	   order_request.type = ORDER_TYPE_BUY;
-               	}else{
-               	   order_request.type = ORDER_TYPE_SELL;
-               	}
-               	            	
                	order_request.action=TRADE_ACTION_PENDING;
-                  order_request.magic=0;
+               	if(operation == "BUY"){
+               	   order_request.type = ORDER_TYPE_BUY_LIMIT;
+               	   if(symbol_point == 0.00001){
+                        price = price - 0.001;
+                     }
+                     else if(symbol_point == 0.001){
+                        price = price - 0.1;
+                     }
+               	}else{
+               	   order_request.type = ORDER_TYPE_SELL_LIMIT;
+               	   if(symbol_point == 0.00001){
+                        price = price + 0.001;
+                     }
+                     else if(symbol_point == 0.001){
+                        price = price + 0.1;
+                     }
+               	}
+                  order_request.magic=id;
                   order_request.symbol=symbol;
-                  order_request.volume=0.1;
+                  order_request.volume=calculate_lotsize(symbol);
                   order_request.sl=sl;
-                  order_request.tp=tp_1;
+                  order_request.tp=tp_1;                  
                   order_request.price=price;
-                  
+                  order_request.type_time=ORDER_TIME_SPECIFIED;
+                  order_request.expiration=TimeCurrent()+PeriodSeconds(PERIOD_H4);
                   MqlTradeResult order_result={};
                                  
                   if(!OrderSend(order_request, order_result)){
                      PrintFormat("OrderSend error %d",GetLastError());
                   }
-               	//--- End Send order
          	   }
          	}else{
          	   break;
@@ -98,16 +112,25 @@ void check_signals(){
 }
 
 bool canTrade(long id){
-   for(int i=0;i<ArraySize(ids);i++){
-     if(ids[i] == id){
-        return false;
-     }else if(ids[i] == 0){
-         ids[i] = id;
-         return true;
-     }else if(ids[ArraySize(ids)-1]!=0){
-         ids[0] = 0;
-         return false;
-     }
+   for(int i=0;i<OrdersTotal();i++){
+      if(OrderGetTicket(i)>0){
+         if(OrderGetInteger(ORDER_MAGIC)==id){
+            return false;
+         }
+      }
    }
-   return false;
+   for(int i=0;i<PositionsTotal();i++){
+      if(PositionGetTicket(i) > 0){
+         if(PositionGetInteger(POSITION_MAGIC) == id){
+            return false;
+         }
+      }
+   }
+   return true;  
+}
+
+double calculate_lotsize(string symbol){
+   static double account_balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   double exchange_rate = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE) * (account_balance * (risk_percentage/100));
+   return exchange_rate/sl_pips;
 }
