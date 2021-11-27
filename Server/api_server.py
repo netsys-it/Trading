@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Flask
 from flask import make_response
 from flask import jsonify
+from flask import request
 from functions import get_signals
 
 
@@ -10,7 +11,11 @@ app = Flask(__name__)
 
 @app.route('/goml/v1.0/signals', methods=['GET'])
 def signals():
-    return jsonify({'signals': get_signals()})
+    auth_code = request.cookies.get('auth')
+    if auth_code == 'XXXXX':
+        return jsonify({'signals': get_signals()})
+    else:
+        return jsonify({'error': 'No license found'})
 
 
 @app.errorhandler(404)
