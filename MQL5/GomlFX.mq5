@@ -10,6 +10,7 @@
 #include <jason.mqh>
 input double risk_percentage = 1;
 input int sl_pips = 400;
+input string auth_code = "XXXXX";
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -40,10 +41,10 @@ void OnTick()
 void check_signals(){
 //---
    CJAVal jv;
-   string cookie = NULL;
+   string cookie = "auth="+auth_code;
    string referer = NULL;
    int timeout = 500;
-   string headers = "Content-Type: application/json\r\n";;
+   string headers = "Content-Type: application/json\r\n";
    char post[];
    char result[];
    string url = "http://plaskur.sk/goml/v1.0/signals";
