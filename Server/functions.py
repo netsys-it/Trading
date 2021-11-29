@@ -5,6 +5,7 @@ def get_signals():
     with open('signals.csv') as fr:
         rows = [row.replace('\n', '') for row in fr.readlines()]
         signals = list()
+        now = datetime.now()
         for row in rows:
             tokens = row.split(',')
             signal_id = tokens[0]
@@ -17,16 +18,18 @@ def get_signals():
             # tp_3 = float(tokens[7])
             sl = float(tokens[8])
 
-            if datetime.today().year == signal_date.year:
-                if datetime.today().month == signal_date.month:
-                    if datetime.today().day == signal_date.day:
-                        signals.append({
-                            'id': int(signal_id),
-                            'symbol': symbol,
-                            'operation': operation,
-                            'price': price,
-                            'tp_1': tp_1,
-                            'sl': sl
-                        })
+            if now.year == signal_date.year:
+                if now.month == signal_date.month:
+                    if now.day == signal_date.day:
+                        if now.hour - 4 <= signal_date.hour:
+                            signals.append({
+                                'id': int(signal_id),
+                                'signal_date': str(signal_date),
+                                'symbol': symbol,
+                                'operation': operation,
+                                'price': price,
+                                'tp_1': tp_1,
+                                'sl': sl
+                            })
 
     return signals
