@@ -178,24 +178,24 @@ void check_trend(string symbol, string operation, double price){
          //return true;
       }else{
          if(price > ima_30m){
-            Print("NOT BUY 30m trend for ", symbol);
+            Print("BUY trend 30m trend for ", symbol);
          }else{
-            Print("BUY trend 30m for ", symbol);
+            Print("NOT BUY trend 30m for ", symbol);
          }
          if(price > ima_1h){
-            Print("NOT BUY 1h trend for ", symbol);
+            Print("BUY 1h trend for ", symbol);
          }else{
-            Print("BUY trend 1h for ", symbol);
+            Print("NOT BUY trend 1h for ", symbol);
          }
          if(price > ima_2h){
-            Print("NOT BUY 2h trend for ", symbol);
+            Print("BUY 2h trend for ", symbol);
          }else{
-            Print("BUY trend 2h for ", symbol);
+            Print("NOT BUY trend 2h for ", symbol);
          }
          if(price > ima_4h){
-            Print("NOT BUY 4h trend for ", symbol);
+            Print("BUY 4h trend for ", symbol);
          }else{
-            Print("BUY trend 4h for ", symbol);
+            Print("NOT BUY trend 4h for ", symbol);
          }
       }
    }else{
@@ -204,24 +204,24 @@ void check_trend(string symbol, string operation, double price){
          //return true;
       }else{
          if(price < ima_30m){
-            Print("NOT SELL 30m trend for ", symbol);
+            Print("SELL 30m trend for ", symbol);
          }else{
-            Print("SELL trend 30m for ", symbol);
+            Print("NOT SELL trend 30m for ", symbol);
          }
          if(price < ima_1h){
-            Print("NOT SELL 1h trend for ", symbol);
+            Print("SELL 1h trend for ", symbol);
          }else{
-            Print("SELL trend 1h for ", symbol);
+            Print("NOT SELL trend 1h for ", symbol);
          }
          if(price < ima_2h){
-            Print("NOT SELL 2h trend for ", symbol);
+            Print("SELL 2h trend for ", symbol);
          }else{
-            Print("SELL trend 2h for ", symbol);
+            Print("NOT SELL trend 2h for ", symbol);
          }
          if(price < ima_4h){
-            Print("NOT SELL 4h trend for ", symbol);
+            Print("SELL 4h trend for ", symbol);
          }else{
-            Print("SELL trend 4h for ", symbol);
+            Print("NOT SELL trend 4h for ", symbol);
          }
       }
    }
