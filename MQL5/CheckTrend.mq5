@@ -1,33 +1,59 @@
 //+------------------------------------------------------------------+
 //|                                                   CheckTrend.mq5 |
 //|                                                   Daniel Plaskur |
-//|                                             https://www.mql5.com |
+//|                                               https://plaskur.sk |
 //+------------------------------------------------------------------+
 #property copyright "Daniel Plaskur"
-#property link      "https://www.mql5.com"
-#property version   "1.00"
-#property script_show_inputs
-input string economic_symbols = "EUR,USD";
+#property link      "https://plaskur.sk"
+#property version   "1.01"
 //+------------------------------------------------------------------+
 //| Script program start function                                    |
 //+------------------------------------------------------------------+
-void OnStart()
-  {
+void OnStart(){
 //---
-   string result[];
-   string separator = ",";
-   ushort u_sep = StringGetCharacter(separator, 0);
-   int total = StringSplit(economic_symbols, u_sep, result);
-   bool economic_flag = true;
-   for(int i=0;i<SymbolsTotal(true);i++){
-      for(int j=0;j<total;j++){
-         if(StringFind(SymbolName(i, 1), result[j]) >= 0){
-            economic_flag = false;
-            break;
+   check_trend();
+}
+//+------------------------------------------------------------------+
+bool economic_events(string symbol){
+   string currency_1 = StringSubstr(symbol, 0, 3);
+   string currency_2 = StringSubstr(symbol, 3, 3);
+
+   MqlCalendarValue values_1[];
+   MqlCalendarValue values_2[];
+   
+   datetime date_from = TimeCurrent(); 
+   datetime date_to = date_from + (24*60*60);
+   if(CalendarValueHistory(values_1, date_from, date_to, NULL, currency_1)){
+      for(int i=0;i<ArraySize(values_1);i++){
+         MqlCalendarEvent event; 
+         ulong event_id = values_1[i].event_id;
+         if(CalendarEventById(event_id, event)){
+            if (event.importance > 2 && event.time_mode == CALENDAR_TIMEMODE_DATETIME){
+               return false;
+            }
          }
       }
-      if(economic_flag){
-         string symbol = SymbolName(i, 1);
+   }
+   if(CalendarValueHistory(values_2, date_from, date_to, NULL, currency_2)){
+      for(int i=0;i<ArraySize(values_2);i++){
+         MqlCalendarEvent event; 
+         ulong event_id = values_2[i].event_id;
+         if(CalendarEventById(event_id, event)){
+            if (event.importance > 2 && event.time_mode == CALENDAR_TIMEMODE_DATETIME){
+               return false;
+            }
+         }
+      }
+   }
+      
+   return true;
+}
+
+void check_trend(){
+   for(int i=0;i<SymbolsTotal(true);i++){
+      string symbol = SymbolName(i, 1);
+
+      if(economic_events(symbol)){
          int ima_1h = iMA(symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
          int ima_2h = iMA(symbol, PERIOD_H2, 200, 0, MODE_SMA, PRICE_CLOSE);
          int ima_4h = iMA(symbol, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE);
@@ -43,7 +69,5 @@ void OnStart()
             Alert("SELL trend for ", symbol);
          }
       }
-      economic_flag = true;
    }
-  }
-//+------------------------------------------------------------------+
+}
