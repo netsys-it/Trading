@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Daniel Plaskur"
 #property link      "https://plaskur.sk"
-#property version   "1.00"
+#property version   "1.01"
 #property script_show_inputs
 #include <jason.mqh>
 input double risk_percentage = 1;
@@ -34,11 +34,11 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
-      check_signals();
+      CheckSignals();
   }
 //+------------------------------------------------------------------+
 
-void check_signals(){
+void CheckSignals(){
 //---
    CJAVal jv;
    string cookie = "auth="+auth_code;
@@ -61,67 +61,65 @@ void check_signals(){
          for(int i=0;i<10;i++){
          	long id = jv["signals"][i]["id"].ToInt();
          	if(id > 0){
-         	   if(canTrade(id)){
-         	      string operation=jv["signals"][i]["operation"].ToStr();
-               	string symbol=jv["signals"][i]["symbol"].ToStr();
-               	double price=jv["signals"][i]["price"].ToDbl();
-               	double tp_1=jv["signals"][i]["tp_1"].ToDbl();
-               	double sl=jv["signals"][i]["sl"].ToDbl();
-               	
-               	double symbol_point = SymbolInfoDouble(symbol,SYMBOL_POINT);
-
-               	MqlTradeRequest order_request={};
-               	               	
-               	order_request.action=TRADE_ACTION_PENDING;
-               	if(operation == "BUY"){
-               	   order_request.type = ORDER_TYPE_BUY_LIMIT;
-               	   if(symbol_point == 0.00001){
-                        price = price - 0.001;
+         	   if(TradesFilter(id)){
+         	      string symbol = jv["signals"][i]["symbol"].ToStr();        
+                  if(EconomicFilter(symbol)){
+                     string operation = jv["signals"][i]["operation"].ToStr();
+                  	double price = jv["signals"][i]["price"].ToDbl();
+                  	double tp_1 = jv["signals"][i]["tp_1"].ToDbl();
+                  	double sl = jv["signals"][i]["sl"].ToDbl();
+                  	
+                  	double symbol_point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   
+                  	MqlTradeRequest order_request={};
+                  	               	
+                  	order_request.action=TRADE_ACTION_PENDING;
+                  	if(operation == "BUY"){
+                  	   order_request.type = ORDER_TYPE_BUY_LIMIT;
+                  	   if(symbol_point == 0.00001){
+                           price = price - 0.001;
+                        }else if(symbol_point == 0.001){
+                           price = price - 0.1;
+                        }
+                  	}else{
+                  	   order_request.type = ORDER_TYPE_SELL_LIMIT;
+                  	   if(symbol_point == 0.00001){
+                           price = price + 0.001;
+                        }else if(symbol_point == 0.001){
+                           price = price + 0.1;
+                        }
+                  	}
+                  	double lot_size = CalculateLotsize(symbol);
+                  	
+                     order_request.magic=id;
+                     order_request.symbol=symbol;
+                     order_request.volume=lot_size;
+                     order_request.sl=sl;
+                     order_request.tp=tp_1;                  
+                     order_request.price=price;
+                     order_request.type_time=ORDER_TIME_SPECIFIED;
+                     order_request.expiration=TimeCurrent()+PeriodSeconds(PERIOD_H4);
+                     MqlTradeResult order_result={};
+                     
+                     if(TrendFilter(symbol, operation, price)){
+                        if(!OrderSend(order_request, order_result)){
+                           // https://www.mql5.com/en/docs/constants/errorswarnings/enum_trade_return_codes
+                           Print("retcode=",order_result.retcode);
+                           PrintFormat("OrderSend error %d",GetLastError());
+                           Print("symbol=",symbol," operation=",operation," price=",price," tp=",tp_1, " sl=",sl," lotsize=",lot_size);
+                        }
                      }
-                     else if(symbol_point == 0.001){
-                        price = price - 0.1;
-                     }
-               	}else{
-               	   order_request.type = ORDER_TYPE_SELL_LIMIT;
-               	   if(symbol_point == 0.00001){
-                        price = price + 0.001;
-                     }
-                     else if(symbol_point == 0.001){
-                        price = price + 0.1;
-                     }
-               	}
-               	double lot_size = calculate_lotsize(symbol);
-               	
-                  order_request.magic=id;
-                  order_request.symbol=symbol;
-                  order_request.volume=lot_size;
-                  order_request.sl=sl;
-                  order_request.tp=tp_1;                  
-                  order_request.price=price;
-                  order_request.type_time=ORDER_TIME_SPECIFIED;
-                  order_request.expiration=TimeCurrent()+PeriodSeconds(PERIOD_H4);
-                  MqlTradeResult order_result={};
-                  
-                  check_trend(symbol, operation, price);
-                  
-                  //if(check_trend(symbol, operation, price)){  
-                     if(!OrderSend(order_request, order_result)){
-                        // https://www.mql5.com/en/docs/constants/errorswarnings/enum_trade_return_codes
-                        Print("retcode=",order_result.retcode);
-                        PrintFormat("OrderSend error %d",GetLastError());
-                        Print("symbol=",symbol," operation=",operation," price=",price," tp=",tp_1, " sl=",sl," lotsize=",lot_size);
-                     }
-                  //}
+                  }
          	   }
          	}else{
-         	   break;
+         	   continue;
          	}
           }         
       }
    }
 }
 
-bool canTrade(long id){
+bool TradesFilter(long id){
    for(int i=0;i<OrdersTotal();i++){
       if(OrderGetTicket(i)>0){
          if(OrderGetInteger(ORDER_MAGIC)==id){
@@ -139,7 +137,7 @@ bool canTrade(long id){
    return true;  
 }
 
-double calculate_lotsize(string symbol){
+double CalculateLotsize(string symbol){
    int lot_digits;
    double min_lot_size = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
    double max_lot_size = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
@@ -165,65 +163,54 @@ double calculate_lotsize(string symbol){
    
    return lot_size;
 }
-//bool check_trend(string symbol, string operation, double price){
-void check_trend(string symbol, string operation, double price){
-   int ima_30m = iMA(symbol, PERIOD_M30, 200, 0, MODE_SMA, PRICE_CLOSE);
+bool TrendFilter(string symbol, string operation, double price){
    int ima_1h = iMA(symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
    int ima_2h = iMA(symbol, PERIOD_H2, 200, 0, MODE_SMA, PRICE_CLOSE);
    int ima_4h = iMA(symbol, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE);
    
    if(operation == "BUY"){
-      if(price > ima_30m && price > ima_1h && price > ima_2h && price > ima_4h){
-         Print("BUY trend for ", symbol);
-         //return true;
-      }else{
-         if(price > ima_30m){
-            Print("BUY trend 30m trend for ", symbol);
-         }else{
-            Print("NOT BUY trend 30m for ", symbol);
-         }
-         if(price > ima_1h){
-            Print("BUY 1h trend for ", symbol);
-         }else{
-            Print("NOT BUY trend 1h for ", symbol);
-         }
-         if(price > ima_2h){
-            Print("BUY 2h trend for ", symbol);
-         }else{
-            Print("NOT BUY trend 2h for ", symbol);
-         }
-         if(price > ima_4h){
-            Print("BUY 4h trend for ", symbol);
-         }else{
-            Print("NOT BUY trend 4h for ", symbol);
-         }
+      if(price > ima_1h && price > ima_2h && price > ima_4h){
+         return true;
       }
    }else{
-      if(price < ima_30m && price < ima_1h && price < ima_2h && price < ima_4h){
-         Print("SELL trend for ", symbol);
-         //return true;
-      }else{
-         if(price < ima_30m){
-            Print("SELL 30m trend for ", symbol);
-         }else{
-            Print("NOT SELL trend 30m for ", symbol);
-         }
-         if(price < ima_1h){
-            Print("SELL 1h trend for ", symbol);
-         }else{
-            Print("NOT SELL trend 1h for ", symbol);
-         }
-         if(price < ima_2h){
-            Print("SELL 2h trend for ", symbol);
-         }else{
-            Print("NOT SELL trend 2h for ", symbol);
-         }
-         if(price < ima_4h){
-            Print("SELL 4h trend for ", symbol);
-         }else{
-            Print("NOT SELL trend 4h for ", symbol);
+      if(price < ima_1h && price < ima_2h && price < ima_4h){
+         return true;
+      }
+   }
+   return false;
+}
+
+bool EconomicFilter(string symbol){
+   string currency_1 = StringSubstr(symbol, 0, 3);
+   string currency_2 = StringSubstr(symbol, 3, 3);
+
+   MqlCalendarValue values_1[];
+   MqlCalendarValue values_2[];
+   
+   datetime date_from = TimeCurrent(); 
+   datetime date_to = date_from + (24*60*60);
+   if(CalendarValueHistory(values_1, date_from, date_to, NULL, currency_1)){
+      for(int i=0;i<ArraySize(values_1);i++){
+         MqlCalendarEvent event; 
+         ulong event_id = values_1[i].event_id;
+         if(CalendarEventById(event_id, event)){
+            if (event.importance > 2 && event.time_mode == CALENDAR_TIMEMODE_DATETIME){
+               return false;
+            }
          }
       }
    }
-   //return false;
+   if(CalendarValueHistory(values_2, date_from, date_to, NULL, currency_2)){
+      for(int i=0;i<ArraySize(values_2);i++){
+         MqlCalendarEvent event; 
+         ulong event_id = values_2[i].event_id;
+         if(CalendarEventById(event_id, event)){
+            if (event.importance > 2 && event.time_mode == CALENDAR_TIMEMODE_DATETIME){
+               return false;
+            }
+         }
+      }
+   }
+      
+   return true;
 }
