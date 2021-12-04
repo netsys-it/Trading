@@ -1,2 +1,2 @@
 # Trading
-Trading automatization
+Trading automatization for forex, stocks and crypto.
