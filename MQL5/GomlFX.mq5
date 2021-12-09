@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Daniel Plaskur"
 #property link      "https://plaskur.sk"
-#property version   "1.02"
+#property version   "1.03"
 #property script_show_inputs
 #include <jason.mqh>
 input double risk_percentage = 1;
@@ -62,9 +62,9 @@ void CheckSignals(){
          	long id = jv["signals"][i]["id"].ToInt();
          	if(id > 0){
          	   if(TradesFilter(id)){
-         	      string symbol = jv["signals"][i]["symbol"].ToStr();        
+         	        string symbol = jv["signals"][i]["symbol"].ToStr();        
                   if(EconomicFilter(symbol)){
-                     string operation = jv["signals"][i]["operation"].ToStr();
+                    string operation = jv["signals"][i]["operation"].ToStr();
                   	double price; //= jv["signals"][i]["price"].ToDbl();
                   	double tp_1 = jv["signals"][i]["tp_1"].ToDbl();
                   	double sl = jv["signals"][i]["sl"].ToDbl();
@@ -77,8 +77,8 @@ void CheckSignals(){
                   	order_request.action = TRADE_ACTION_DEAL;
                   	if(operation == "BUY"){
                   	   /*
-                  	   order_request.type = ORDER_TYPE_BUY_LIMIT;
-                  	   if(symbol_point == 0.00001){
+                  	    order_request.type = ORDER_TYPE_BUY_LIMIT;
+                  	    if(symbol_point == 0.00001){
                            price = price - 0.001;
                         }else if(symbol_point == 0.001){
                            price = price - 0.1;
@@ -89,8 +89,8 @@ void CheckSignals(){
                         order_request.price = price;
                   	}else{
                   	   /*
-                  	   order_request.type = ORDER_TYPE_SELL_LIMIT;
-                  	   if(symbol_point == 0.00001){
+                  	    order_request.type = ORDER_TYPE_SELL_LIMIT;
+                  	    if(symbol_point == 0.00001){
                            price = price + 0.001;
                         }else if(symbol_point == 0.001){
                            price = price + 0.1;
@@ -100,33 +100,33 @@ void CheckSignals(){
                         order_request.type = ORDER_TYPE_SELL;
                         order_request.price = price;
                   	}
-                  	double lot_size = CalculateLotsize(symbol, price, sl);
+                  	double lot_size = CalculateLotsize(symbol, price,  sl);
                   	double tp = CalculateTP(price, sl);
                   	
-                     order_request.magic=id;
-                     order_request.symbol=symbol;
-                     order_request.volume=lot_size;
-                     order_request.sl=sl;
-                     order_request.tp=tp;
-                     order_request.deviation=5; // allowed deviation from the price
-                     //order_request.price=price;
-                     //order_request.type_time=ORDER_TIME_SPECIFIED;
-                     //order_request.expiration=TimeCurrent()+PeriodSeconds(PERIOD_H4);
-                     MqlTradeResult order_result={};
+                    order_request.magic=id;
+                    order_request.symbol=symbol;
+                    order_request.volume=lot_size;
+                    order_request.sl=sl;
+                    order_request.tp=tp;
+                    order_request.deviation=5; // allowed deviation from the price
+                    //order_request.price=price;
+                    //order_request.type_time=ORDER_TIME_SPECIFIED;
+                    //order_request.expiration=TimeCurrent()+PeriodSeconds(PERIOD_H4);
+                    MqlTradeResult order_result={};
                      
-                     if(TrendFilter(symbol, operation, price)){
-                        if(!OrderSend(order_request, order_result)){
+                    // if(TrendFilter(symbol, operation, price)){
+                       if(!OrderSend(order_request, order_result)){
                            // https://www.mql5.com/en/docs/constants/errorswarnings/enum_trade_return_codes
                            PrintFormat("retcode= %d",order_result.retcode);
                            PrintFormat("OrderSend error %d", GetLastError());
                            Print("symbol=", symbol, " operation=", operation, " price=", price, " tp=", tp_1, " sl=", sl, " lotsize=", lot_size);
                         }
-                     }
+                    // }
                   }
-         	   }
-         	}else{
-         	   continue;
-         	}
+         	    }
+         	  }else{
+         	    continue;
+         	  }
           }         
       }
    }
@@ -186,28 +186,72 @@ double CalculateLotsize(string symbol, double price, double sl){
 }
 
 bool TrendFilter(string symbol, string operation, double price){
-   int ima_1h1 = iMA(symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_1h2 = iMA(symbol, PERIOD_H1, 50, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_1h3 = iMA(symbol, PERIOD_H1, 21, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_2h1 = iMA(symbol, PERIOD_H2, 200, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_2h2 = iMA(symbol, PERIOD_H2, 50, 0, MODE_SMA, PRICE_CLOSE);   
-   int ima_2h3 = iMA(symbol, PERIOD_H2, 21, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_4h1 = iMA(symbol, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_4h2 = iMA(symbol, PERIOD_H4, 50, 0, MODE_SMA, PRICE_CLOSE);
-   int ima_4h3 = iMA(symbol, PERIOD_H4, 21, 0, MODE_SMA, PRICE_CLOSE);
+   double ma_4h_200[];
+   double ma_4h_50[];
+   double ma_4h_21[];
+   double ma_2h_200[];
+   double ma_2h_50[];
+   double ma_2h_21[];
+   double ma_1h_200[];
+   double ma_1h_50[];
+   double ma_1h_21[];
+   int handle_4h_200 = iMA(symbol, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_4h_50 = iMA(symbol, PERIOD_H4, 50, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_4h_21 = iMA(symbol, PERIOD_H4, 21, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_2h_200 = iMA(symbol, PERIOD_H2, 200, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_2h_50 = iMA(symbol, PERIOD_H2, 50, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_2h_21 = iMA(symbol, PERIOD_H2, 21, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_1h_200 = iMA(symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_1h_50 = iMA(symbol, PERIOD_H1, 50, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_1h_21 = iMA(symbol, PERIOD_H1, 21, 0, MODE_SMA, PRICE_CLOSE);
+     
+   if(handle_4h_200 == INVALID_HANDLE || handle_4h_50 == INVALID_HANDLE || handle_4h_21 == INVALID_HANDLE || handle_2h_200 == INVALID_HANDLE || handle_2h_50 == INVALID_HANDLE || handle_2h_21 == INVALID_HANDLE || handle_1h_200 == INVALID_HANDLE || handle_1h_50 == INVALID_HANDLE || handle_1h_21 == INVALID_HANDLE){
+      PrintFormat("Failed to create handle of the iMACD indicator for the symbol %s, error code %d",
+                  symbol,
+                  GetLastError());
+   }
+   
+   ResetLastError();
+   if(CopyBuffer(handle_4h_200, 0, 0, 1, ma_4h_200) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_4h_50, 0, 0, 1, ma_4h_50) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_4h_21, 0, 0, 1, ma_4h_21) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_2h_200, 0, 0, 1, ma_2h_200) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_2h_50, 0, 0, 1, ma_2h_50) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_2h_21, 0, 0, 1, ma_2h_21) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_1h_200, 0, 0, 1, ma_1h_200) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_1h_50, 0, 0, 1, ma_1h_50) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_1h_21, 0, 0, 1, ma_1h_21) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
    
    if(operation == "BUY"){
-      if(ima_1h3 > ima_1h2 && ima_1h2 > ima_1h1){
-         if(ima_2h3 > ima_2h2 && ima_2h2 > ima_2h1){
-            if(ima_4h3 > ima_4h2 && ima_4h2 > ima_4h1){
+      if(ma_4h_21[0] > ma_4h_50[0] && ma_4h_50[0] > ma_4h_200[0]){
+         if(ma_2h_21[0] > ma_2h_50[0] && ma_2h_50[0] > ma_2h_200[0]){
+            if(ma_1h_21[0] > ma_1h_50[0] && ma_1h_50[0] > ma_1h_200[0]){
                return true;
             }
-         }   
+         }      
       }
    }else{
-      if(ima_1h3 < ima_1h2 && ima_1h2 < ima_1h1){
-         if(ima_2h3 < ima_2h2 && ima_2h2 < ima_2h1){
-            if(ima_4h3 < ima_4h2 && ima_4h2 < ima_4h1){
+      if(ma_4h_21[0] < ma_4h_50[0] && ma_4h_50[0] < ma_4h_200[0]){
+         if(ma_2h_21[0] < ma_2h_50[0] && ma_2h_50[0] < ma_2h_200[0]){
+            if(ma_1h_21[0] < ma_1h_50[0] && ma_1h_50[0] < ma_1h_200[0]){
                return true;
             }
          }      
@@ -257,7 +301,7 @@ double CalculateTP(double price, double sl){
    double add_to_price = MathAbs(price - sl);
    
    if(price > sl){
-      take_profit = (add_to_price * risk_reward) + price;
+      take_profit = price + (add_to_price * risk_reward);
    }else{
       take_profit = price - (add_to_price * risk_reward);
    }
