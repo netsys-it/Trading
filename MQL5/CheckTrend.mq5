@@ -5,15 +5,15 @@
 //+------------------------------------------------------------------+
 #property copyright "Daniel Plaskur"
 #property link      "https://plaskur.sk"
-#property version   "1.02"
+#property version   "1.03"
 //+------------------------------------------------------------------+
 //| Script program start function                                    |
 //+------------------------------------------------------------------+
 void OnStart(){
 //---
-   FilterTrend();
+   CheckTrading();
 }
-//+------------------------------------------------------------------+
+
 bool FilterEconomicEvents(string symbol){
    string currency_1 = StringSubstr(symbol, 0, 3);
    string currency_2 = StringSubstr(symbol, 3, 3);
@@ -49,37 +49,85 @@ bool FilterEconomicEvents(string symbol){
    return true;
 }
 
-void FilterTrend(){
-   for(int i=0;i<SymbolsTotal(true);i++){
-      string symbol = SymbolName(i, 1);
-
-      if(FilterEconomicEvents(symbol)){
-         int ima_1h = iMA(symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
-         int ima_2h = iMA(symbol, PERIOD_H2, 200, 0, MODE_SMA, PRICE_CLOSE);
-         int ima_4h = iMA(symbol, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE);
-         
-         MqlTick Latest_Price;
-         static double ask_price = Latest_Price.ask;
-         static double bid_price = Latest_Price.bid;
-                  
-         if(ask_price > ima_1h && ask_price > ima_2h && ask_price > ima_4h){
-            Alert("BUY trend for ", symbol);
-            FilterMACD(symbol, "BUY");
-         }
-         if(bid_price < ima_1h && bid_price < ima_2h && bid_price < ima_4h){
-            Alert("SELL trend for ", symbol);
-            FilterMACD(symbol, "SELL");
-         }
-      }
+string TrendSignal(string symbol){
+   double ma_4h_200[];
+   double ma_4h_50[];
+   double ma_4h_21[];
+   double ma_2h_200[];
+   double ma_2h_50[];
+   double ma_2h_21[];
+   double ma_1h_200[];
+   double ma_1h_50[];
+   double ma_1h_21[];
+   int handle_4h_200 = iMA(symbol, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_4h_50 = iMA(symbol, PERIOD_H4, 50, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_4h_21 = iMA(symbol, PERIOD_H4, 21, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_2h_200 = iMA(symbol, PERIOD_H2, 200, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_2h_50 = iMA(symbol, PERIOD_H2, 50, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_2h_21 = iMA(symbol, PERIOD_H2, 21, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_1h_200 = iMA(symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_1h_50 = iMA(symbol, PERIOD_H1, 50, 0, MODE_SMA, PRICE_CLOSE);
+   int handle_1h_21 = iMA(symbol, PERIOD_H1, 21, 0, MODE_SMA, PRICE_CLOSE);
+     
+   if(handle_4h_200 == INVALID_HANDLE || handle_4h_50 == INVALID_HANDLE || handle_4h_21 == INVALID_HANDLE || handle_2h_200 == INVALID_HANDLE || handle_2h_50 == INVALID_HANDLE || handle_2h_21 == INVALID_HANDLE || handle_1h_200 == INVALID_HANDLE || handle_1h_50 == INVALID_HANDLE || handle_1h_21 == INVALID_HANDLE){
+      PrintFormat("Failed to create handle of the iMACD indicator for the symbol %s, error code %d",
+                  symbol,
+                  GetLastError());
    }
+   
+   ResetLastError();
+   if(CopyBuffer(handle_4h_200, 0, 0, 1, ma_4h_200) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_4h_50, 0, 0, 1, ma_4h_50) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_4h_21, 0, 0, 1, ma_4h_21) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_2h_200, 0, 0, 1, ma_2h_200) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_2h_50, 0, 0, 1, ma_2h_50) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_2h_21, 0, 0, 1, ma_2h_21) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_1h_200, 0, 0, 1, ma_1h_200) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_1h_50, 0, 0, 1, ma_1h_50) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   if(CopyBuffer(handle_1h_21, 0, 0, 1, ma_1h_21) < 0){
+      PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
+   }
+   
+   if(ma_4h_21[0] > ma_4h_50[0] && ma_4h_50[0] > ma_4h_200[0]){
+      if(ma_2h_21[0] > ma_2h_50[0] && ma_2h_50[0] > ma_2h_200[0]){
+         if(ma_1h_21[0] > ma_1h_50[0] && ma_1h_50[0] > ma_1h_200[0]){
+            return "BUY";
+         }
+      }      
+   }
+   if(ma_4h_21[0] < ma_4h_50[0] && ma_4h_50[0] < ma_4h_200[0]){
+      if(ma_2h_21[0] < ma_2h_50[0] && ma_2h_50[0] < ma_2h_200[0]){
+         if(ma_1h_21[0] < ma_1h_50[0] && ma_1h_50[0] < ma_1h_200[0]){
+            return "SELL";
+         }
+      }      
+   }
+
+   return "None";
 }
 
-void FilterMACD(string symbol, string operation){
-   double MACDBuffer[];
-   double SignalBuffer[];
+string MACDSignal(string symbol){
+   double macd_buffer[];
+   double signal_buffer[];
    
-   SetIndexBuffer(0, MACDBuffer, INDICATOR_DATA);
-   SetIndexBuffer(1, SignalBuffer, INDICATOR_DATA);
+   SetIndexBuffer(0, macd_buffer, INDICATOR_DATA);
+   SetIndexBuffer(1, signal_buffer, INDICATOR_DATA);
    
    int handle = iMACD(symbol, PERIOD_H1, 12, 26, 9, PRICE_CLOSE);
    if(handle == INVALID_HANDLE){
@@ -89,20 +137,33 @@ void FilterMACD(string symbol, string operation){
    }
    
    ResetLastError();
-   if(CopyBuffer(handle, 0, 0, 2, MACDBuffer) < 0){
+   if(CopyBuffer(handle, 0, 0, 2, macd_buffer) < 0){
       PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
    }
-   if(CopyBuffer(handle, 1, 0, 2, SignalBuffer) < 0){
+   if(CopyBuffer(handle, 1, 0, 2, signal_buffer) < 0){
       PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
    }
    
-   if(SignalBuffer[0] < MACDBuffer[0] && SignalBuffer[1] > MACDBuffer[1] && MACDBuffer[0] > MACDBuffer[1] && SignalBuffer[0] > SignalBuffer[1]){
-      if(operation == "BUY"){
-         Alert("BUY MACD");   
-      }
-   }else if(SignalBuffer[0] > MACDBuffer[0] && SignalBuffer[1] < MACDBuffer[1] && MACDBuffer[0] < MACDBuffer[1] && SignalBuffer[0] < SignalBuffer[1]){
-      if(operation == "SELL"){
-         Alert("SELL MACD");   
+   if(signal_buffer[0] < macd_buffer[0] && signal_buffer[1] > macd_buffer[1] && macd_buffer[0] > macd_buffer[1] && signal_buffer[0] > signal_buffer[1]){
+      return "BUY";
+   }else if(signal_buffer[0] > macd_buffer[0] && signal_buffer[1] < macd_buffer[1] && macd_buffer[0] < macd_buffer[1] && signal_buffer[0] < signal_buffer[1]){
+      return "SELL";
+   }
+
+   return "None";
+}
+
+void CheckTrading(){
+   for(int i=0;i<SymbolsTotal(true);i++){
+      string symbol = SymbolName(i, 1);
+      
+      if(FilterEconomicEvents(symbol)){
+         string macd_signal = MACDSignal(symbol);
+         string trend_signal = TrendSignal(symbol);
+         
+         if(trend_signal != "None"){
+            PrintFormat("Symbol: %s, Trend Signal: %s, MACD Signal: %s", symbol, trend_signal, macd_signal);
+         }
       }
    }
 }
